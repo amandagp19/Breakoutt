@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Breakout 2D</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: rgb(255, 255, 255);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        canvas {
+            background-color: black;
+            border: 4px solid rgb(255, 0, 0);
+            display: block;
+        }
+
+        #gameArea {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 2px solid black;
+            background-color: #eee;
+        }
+
+        .obstaculo { 
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: red;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="breakout" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('breakout');
+        const ctx = canvas.getContext('2d');
+
+        const canvasl = canvas.width;
+        const canvasa = canvas.height;
+        //parte 1
+        // Base
+        const basel = 100; // largura da base
+        const basea = 15;  // altura da base
+        let baseh = (canvasl - basel) / 2; // posição horizontal da base x
+        const basev = canvasa - basea - 10; // posição vertical da base y
+        const bvelocidade = 7;
+
+        // Bola configurações
+        const bolaraio = 10;
+        let bolah = baseh + basel / 2; // posição horizontal da bola x
+        let bolav = basev - bolaraio;  // posição vertical da bola y
+        let dx = 0;
+        let dy = 0;
+        let bolalancada = false;
+        let obstaculo = false;
+
+
+
+
+        // Controle do movimento da base
+        let tecladp = false; // tecla direita pressionada
+        let teclaep = false; // tecla esquerda pressionada
+
+        // Eventos teclado para mover a base
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                tecladp = true;
+            } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                teclaep = true;
+            } else if (!bolalancada) {
+                bolalancada = true;
+                dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+                dy = -4;
+            }
+        });
+
+        document.addEventListener('keyup', function (e) {
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                tecladp = false;
+            } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                teclaep = false;
+            }
+        });
+
+        const obstaculos = [];
+        const bola = { x: bolah, y: bolav, raio: bolaraio };
+        for (let i = 0; i < obstaculos.length; i++) {
+            if (obstaculos[i].flag) {
+                if (detectaColisao(bola, obstaculos[i])) {
+                    obstaculos[i].flag = false;
+                    dy = -dy; 
+
+                }
+            }
+        }
+        function criarObstaculos(x, y, l, a) {
+            return {
+                "flag": true,
+                "x": x,
+                "y": y,
+                "l": l,
+                "a": a,
+                desenha: function () {
+                    ctx.fillStyle = 'red';
+                    ctx.strokeStyle = 'darkred';
+                    ctx.lineWidth = 1;
+                    ctx.lineHeight = 4;
+                    ctx.fillRect(this.x, this.y, this.l, this.a);
+                    ctx.strokeRect(this.x, this.y, this.l, this.a);
+                }
+                
+            }
+        }
+        
+        // Chama a função para criar obstáculos no início
+        //criarObstaculos();
+        // Função para desenhar os obstáculos no canvas
+        function desenhaObstaculos() {
+            ctx.fillStyle = 'red';
+            ctx.strokeStyle = 'darkred';
+            ctx.lineWidth = 1;
+            ctx.lineHeight = 4;
+
+            obstaculos.forEach(obst => {
+                ctx.fillRect(obst.x, obst.y, obst.width, obst.height);
+                ctx.strokeRect(obst.x, obst.y, obst.width, obst.height);
+            });
+        }
+        function desenhaBase() {
+            ctx.fillStyle = '#b81414';
+            const raio = 10;
+            ctx.beginPath();
+            ctx.moveTo(baseh + raio, basev);
+            ctx.lineTo(baseh + basel - raio, basev);
+            ctx.quadraticCurveTo(baseh + basel, basev, baseh + basel, basev + raio);
+            ctx.lineTo(baseh + basel, basev + basea - raio);
+            ctx.quadraticCurveTo(baseh + basel, basev + basea, baseh + basel - raio, basev + basea);
+            ctx.lineTo(baseh + raio, basev + basea);
+            ctx.quadraticCurveTo(baseh, basev + basea, baseh, basev + basea - raio);
+            ctx.lineTo(baseh, basev + raio);
+            ctx.quadraticCurveTo(baseh, basev, baseh + raio, basev);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+
+        function desenhaBola() {
+            ctx.beginPath();
+            ctx.arc(bolah, bolav, bolaraio, 0, Math.PI * 2);
+            ctx.fillStyle = '#d22e2e';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+   function detectaColisao() {
+    let closestX;
+    if (bolah < obstaculo.x) {
+        closestX = obstaculo.x;
+    } else if (bolah > obstaculo.x + obstaculo.l) {
+        closestX = obstaculo.x + obstaculo.l;
+    } else {
+        closestX = bolah;
+    }
+
+    let closestY;
+    if (bolav < obstaculo.y) {
+        closestY = obstaculo.y;
+    } else if (bolav > obstaculo.y + obstaculo.a) {
+        closestY = obstaculo.y + obstaculo.a;
+    } else {
+        closestY = bolav;
+    }
+
+    const distanciaX = bolah - closestX;
+    const distanciaY = bolav - closestY;
+
+    return (distanciaX * distanciaX + distanciaY * distanciaY) < (bolaraio * bolaraio);
+}
+
+
+
+        function atualiza() {
+            // Atualiza posição da base
+            if (tecladp && baseh < canvasl - basel) {
+                baseh += bvelocidade;
+            }
+            if (teclaep && baseh > 0) {
+                baseh -= bvelocidade;
+            }
+
+            // Se bola não foi lançada, ela acompanha a base
+            if (!bolalancada) {
+                bolah = baseh + basel / 2;
+                bolav = basev - bolaraio;
+            } else {
+                // Atualiza posição da bola
+                bolah += dx;
+                bolav += dy;
+                //começa parte 2
+                // Colisão com paredes laterais
+                if (bolah + bolaraio > canvasl) {
+                    bolah = canvasl - bolaraio;
+                    dx = -dx;
+                } else if (bolah - bolaraio < 0) {
+                    bolah = bolaraio;
+                    dx = -dx;
+                }
+
+                // Colisão com teto
+                if (bolav - bolaraio < 0) {
+                    bolav = bolaraio;
+                    dy = -dy;
+                }
+
+                // Colisão com base
+                if (bolav + bolaraio >= basev && bolav + bolaraio <= basev + basea) {
+                    if (bolah > baseh && bolah < baseh + basel) {
+                        bolav = basev - bolaraio;
+                        dy = -dy;
+
+                        // Ajusta direção horizontal da bola dependendo do ponto de contato na base
+                        const impacto = bolah - (baseh + basel / 2);
+                        const angulo = impacto / (basel / 2);
+                        dx = angulo * 5; // controla o ângulo
+                    }
+                }
+
+                // Se bola cair abaixo da base, resetar bola parada na base
+                if (bolav - bolaraio > canvasa) {
+                    bolalancada = false;
+                    dx = 0;
+                    dy = 0;
+                    bolah = baseh + basel / 2;
+                    bolav = basev - bolaraio;
+                }
+            }
+        }
+        //começa parte 3 
+
+        //termina parte 2 
+        function desenha() {
+            ctx.clearRect(0, 0, canvasl, canvasa);
+            desenhaBase();
+            desenhaBola();
+
+            let x, y, l, a;
+            x = 10;
+            y = 10;
+            l = 65;
+            a = 10;
+
+            for (let i = 0; i < 40; i++) {
+                if ((x + l) >= canvas.width) {
+                    y = y + a + 10;
+                    x = 10;
+                }
+                obstaculos.push(criarObstaculos(x, y, l, a));
+                x = x + l + 10;
+            }
+        }
+
+        function loopJogo() {
+            atualiza();
+            desenha();
+
+
+            for (let i = 0; i < obstaculos.length; i++) {
+    if (obstaculos[i].flag) {
+        obstaculos[i].desenha();
+        if (detectaColisao(bola, obstaculos[i])) {
+            obstaculos[i].flag = false;
+            dy = -dy;
+        }
+    }
+}
+
+            requestAnimationFrame(loopJogo);
+            //desenhaObstaculos();
+
+        }
+
+        loopJogo();
+
+        // termina parte 1
+    </script>
+</body>
+
+</html>
